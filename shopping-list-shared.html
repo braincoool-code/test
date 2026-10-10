@@ -1,0 +1,335 @@
+<title>우리 집 장보기</title>
+<style>
+  /* 레이아웃: 한 줄 폭의 세로 목록. 카테고리 카드가 위에서 아래로 쌓임 */
+  :root {
+    --bg: #eef7ee;
+    --card: #ffffff;
+    --ink: #1f3a24;
+    --muted: #61796a;
+    --line: #dcebdc;
+    --green: #2f8f45;
+    --green-dark: #23723a;
+    --green-soft: #e3f3e5;
+    --on-green: #ffffff;
+    --check-ring: #b9d8bd;
+    --field: #fbfdfb;
+    --danger: #b9473a;
+    --danger-soft: #fdf1ee;
+    --danger-line: #f1d5cf;
+    --shadow: 0 2px 10px rgba(40, 90, 50, 0.08);
+    --font: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #142019; --card: #1c2b22; --ink: #e2f0e4; --muted: #9db5a3;
+      --line: #2c4033; --green: #4fb866; --green-dark: #66c97b; --green-soft: #22402b;
+      --on-green: #0f1a13; --check-ring: #3f6b4a; --field: #17251c;
+      --danger: #ef8a7a; --danger-soft: #3a2420; --danger-line: #5a3530;
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #142019; --card: #1c2b22; --ink: #e2f0e4; --muted: #9db5a3;
+    --line: #2c4033; --green: #4fb866; --green-dark: #66c97b; --green-soft: #22402b;
+    --on-green: #0f1a13; --check-ring: #3f6b4a; --field: #17251c;
+    --danger: #ef8a7a; --danger-soft: #3a2420; --danger-line: #5a3530;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font); font-size: 17px; line-height: 1.5;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 48px; }
+
+  header h1 { margin: 0 0 4px; font-size: 28px; letter-spacing: -0.5px; text-wrap: balance; }
+  .meta { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 15px; margin-bottom: 8px; }
+  .sync { font-size: 13px; }
+  .sync::before { content: "●"; margin-right: 4px; color: var(--green); }
+  .sync.off::before { color: var(--danger); }
+  .bar { height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: var(--green); border-radius: 99px; transition: width .3s ease; }
+
+  form.add {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    background: var(--card); padding: 12px; border-radius: 18px;
+    box-shadow: var(--shadow); margin: 20px 0;
+  }
+  form.add input, form.add select {
+    font: inherit; color: inherit;
+    border: 1.5px solid var(--line); border-radius: 12px;
+    padding: 10px 12px; background: var(--field); min-width: 0;
+  }
+  form.add input { flex: 1 1 180px; }
+  form.add select { flex: 0 1 150px; }
+  form.add input:focus-visible, form.add select:focus-visible { outline: none; border-color: var(--green); }
+  .btn {
+    font: inherit; font-weight: 600; cursor: pointer;
+    border: none; border-radius: 12px; padding: 10px 18px;
+    background: var(--green); color: var(--on-green);
+  }
+  .btn:hover { background: var(--green-dark); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.ghost { background: var(--card); color: var(--green-dark); border: 1.5px solid var(--line); }
+  .btn.ghost:hover { background: var(--green-soft); }
+  .btn.warn { background: var(--card); color: var(--danger); border: 1.5px solid var(--danger-line); }
+  .btn.warn:hover { background: var(--danger-soft); }
+  .btn.solid-warn { background: var(--danger); color: var(--on-green); }
+  button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+  .cat { background: var(--card); border-radius: 18px; box-shadow: var(--shadow); padding: 14px 16px 6px; margin-bottom: 14px; }
+  .cat h2 { margin: 0 0 6px; font-size: 18px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .cat h2 .count { font-size: 13px; font-weight: 600; color: var(--green-dark); background: var(--green-soft); padding: 2px 10px; border-radius: 99px; white-space: nowrap; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+  li:first-child { border-top: none; }
+
+  .check {
+    flex: none; width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid var(--check-ring); background: var(--card); cursor: pointer;
+    display: grid; place-items: center; padding: 0;
+    transition: background .15s, border-color .15s;
+  }
+  .check svg { width: 16px; height: 16px; opacity: 0; transform: scale(.5); transition: opacity .15s, transform .15s; }
+  li.done .check { background: var(--green); border-color: var(--green); }
+  li.done .check svg { opacity: 1; transform: scale(1); }
+  .name { flex: 1; min-width: 0; cursor: pointer; overflow-wrap: anywhere; }
+  li.done .name { text-decoration: line-through; color: var(--muted); }
+
+  .qty { display: flex; align-items: center; gap: 4px; flex: none; font-variant-numeric: tabular-nums; }
+  .qty button, .del {
+    font: inherit; width: 30px; height: 30px; border-radius: 50%;
+    border: 1.5px solid var(--line); background: var(--card); color: var(--green-dark);
+    cursor: pointer; line-height: 1; padding: 0;
+  }
+  .qty button:hover { background: var(--green-soft); }
+  .qty span { min-width: 34px; text-align: center; font-weight: 600; }
+  li.done .qty { opacity: .5; }
+  .del { color: var(--muted); border-color: transparent; }
+  .del:hover { color: var(--danger); background: var(--danger-soft); }
+
+  .empty { text-align: center; color: var(--muted); padding: 32px 16px; background: var(--card); border-radius: 18px; box-shadow: var(--shadow); }
+  .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+  .confirm { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 12px; padding: 12px; border-radius: 14px; background: var(--danger-soft); color: var(--danger); font-weight: 600; }
+  .notice { margin-top: 12px; text-align: center; color: var(--danger); font-size: 15px; }
+
+  .readonly .check, .readonly .name, .readonly .qty button, .readonly .del { pointer-events: none; }
+  .readonly .qty button, .readonly .del { visibility: hidden; }
+
+  @media (max-width: 420px) {
+    header h1 { font-size: 24px; }
+    form.add .btn, form.add select { flex: 1 1 auto; }
+    .qty button { width: 28px; height: 28px; }
+    .qty span { min-width: 26px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap" id="app">
+  <header>
+    <h1>🛒 우리 집 장보기</h1>
+    <div class="meta">
+      <span id="progressText">목록을 불러오는 중…</span>
+      <span class="sync off" id="sync">연결 중</span>
+    </div>
+    <div class="bar"><div id="bar"></div></div>
+  </header>
+
+  <form class="add" id="addForm">
+    <input id="newName" type="text" placeholder="살 것을 적어 주세요 (예: 두부)" autocomplete="off" maxlength="40" aria-label="새 항목 이름">
+    <select id="newCat" aria-label="카테고리"></select>
+    <button class="btn" id="addBtn" type="submit">추가</button>
+  </form>
+
+  <main id="list">
+    <div class="empty">목록을 불러오는 중이에요…</div>
+  </main>
+
+  <div class="actions" id="actions">
+    <button class="btn ghost" id="uncheckAll" type="button">🔄 체크 모두 해제</button>
+    <button class="btn warn" id="clearDone" type="button">🗑 산 항목 지우기</button>
+  </div>
+  <div class="confirm" id="confirmBox" hidden>
+    <span id="confirmText"></span>
+    <button class="btn solid-warn" id="confirmYes" type="button">지우기</button>
+    <button class="btn ghost" id="confirmNo" type="button">취소</button>
+  </div>
+  <div class="notice" id="notice" hidden></div>
+</div>
+
+<script>
+  const CATEGORIES = [
+    { id: 'veg',    label: '🥬 채소·과일' },
+    { id: 'meat',   label: '🥩 육류·생선' },
+    { id: 'dairy',  label: '🥛 유제품·달걀' },
+    { id: 'grain',  label: '🍞 빵·곡물' },
+    { id: 'pantry', label: '🥫 가공·양념' },
+    { id: 'home',   label: '🧻 생활용품' },
+    { id: 'etc',    label: '📦 기타' },
+  ];
+  const $ = id => document.getElementById(id);
+  const checkSvg = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--on-green)"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+
+  let items = [];      // [{id, name, cat, qty, done, createdAt}]
+  let col = null;      // db.collection("items")
+  let canWrite = true;
+  let loaded = false;
+
+  CATEGORIES.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.id; o.textContent = c.label;
+    $('newCat').appendChild(o);
+  });
+
+  function showNotice(msg) {
+    const n = $('notice');
+    n.textContent = msg || '';
+    n.hidden = !msg;
+  }
+
+  async function write(fn) {
+    if (!col || !canWrite) return;
+    try { await fn(); showNotice(''); }
+    catch (e) {
+      if (e && e.code === 'invalid_argument') { setReadOnly(); return; }
+      if (e && e.code === 'quota_exceeded') { showNotice('저장 공간이 가득 찼어요. 산 항목을 지운 뒤 다시 해 주세요.'); return; }
+      showNotice('저장하지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.');
+    }
+  }
+
+  function setReadOnly(reason) {
+    canWrite = false;
+    $('app').classList.add('readonly');
+    $('addForm').hidden = true;
+    $('actions').hidden = true;
+    $('confirmBox').hidden = true;
+    showNotice(reason || '이 목록은 보기만 할 수 있어요. 고치려면 목록 주인에게 편집 권한을 받아 주세요.');
+  }
+
+  function render() {
+    const list = $('list');
+    list.innerHTML = '';
+
+    if (!loaded) {
+      list.innerHTML = '<div class="empty">목록을 불러오는 중이에요…</div>';
+      return;
+    }
+
+    CATEGORIES.forEach(cat => {
+      const inCat = items.filter(i => (CATEGORIES.some(c => c.id === i.cat) ? i.cat : 'etc') === cat.id)
+        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      if (!inCat.length) return;
+      // 안 산 것 먼저, 산 것은 맨 아래로
+      const sorted = [...inCat.filter(i => !i.done), ...inCat.filter(i => i.done)];
+      const left = inCat.filter(i => !i.done).length;
+
+      const section = document.createElement('section');
+      section.className = 'cat';
+      section.innerHTML = `<h2><span>${cat.label}</span><span class="count">${left ? left + '개 남음' : '다 담았어요 ✓'}</span></h2>`;
+      const ul = document.createElement('ul');
+
+      sorted.forEach(item => {
+        const li = document.createElement('li');
+        if (item.done) li.className = 'done';
+        li.innerHTML = `
+          <button class="check" type="button" aria-label="${item.done ? '체크 해제' : '체크'}">${checkSvg}</button>
+          <span class="name"></span>
+          <div class="qty">
+            <button type="button" data-d="-1" aria-label="수량 줄이기">−</button>
+            <span>× ${item.qty || 1}</span>
+            <button type="button" data-d="1" aria-label="수량 늘리기">+</button>
+          </div>
+          <button class="del" type="button" aria-label="삭제">✕</button>`;
+        li.querySelector('.name').textContent = item.name;
+
+        const toggle = () => write(() => col.doc(item.id).update({ done: !item.done }));
+        li.querySelector('.check').onclick = toggle;
+        li.querySelector('.name').onclick = toggle;
+        li.querySelectorAll('.qty button').forEach(b => {
+          b.onclick = () => {
+            const next = Math.min(99, Math.max(1, (item.qty || 1) + Number(b.dataset.d)));
+            if (next !== item.qty) write(() => col.doc(item.id).update({ qty: next }));
+          };
+        });
+        li.querySelector('.del').onclick = () => write(() => col.doc(item.id).delete());
+        ul.appendChild(li);
+      });
+
+      section.appendChild(ul);
+      list.appendChild(section);
+    });
+
+    if (!items.length) {
+      list.innerHTML = '<div class="empty">목록이 비어 있어요.<br>위 칸에 살 것을 적고 [추가]를 눌러 보세요 🌱</div>';
+    }
+
+    const total = items.length;
+    const done = items.filter(i => i.done).length;
+    $('progressText').textContent = total ? `${total}개 중 ${done}개 담음` : '아직 살 것이 없어요';
+    $('bar').style.width = total ? (done / total * 100) + '%' : '0';
+  }
+
+  $('addForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const input = $('newName');
+    const name = input.value.trim();
+    if (!name) { input.focus(); return; }
+    input.value = '';
+    input.focus();
+    write(() => col.add({ name, cat: $('newCat').value, qty: 1, done: false, createdAt: Date.now() }));
+  });
+
+  $('uncheckAll').onclick = async () => {
+    const done = items.filter(i => i.done);
+    for (const i of done) await write(() => col.doc(i.id).update({ done: false }));
+  };
+
+  $('clearDone').onclick = () => {
+    const n = items.filter(i => i.done).length;
+    if (!n) { showNotice('아직 체크한 항목이 없어요.'); return; }
+    $('confirmText').textContent = `체크한 ${n}개 항목을 목록에서 지울까요?`;
+    $('confirmBox').hidden = false;
+  };
+  $('confirmNo').onclick = () => { $('confirmBox').hidden = true; };
+  $('confirmYes').onclick = async () => {
+    $('confirmBox').hidden = true;
+    const done = items.filter(i => i.done);
+    for (const i of done) await write(() => col.doc(i.id).delete());
+  };
+
+  render();
+
+  (async () => {
+    const db = window.claude ? await window.claude.use('db') : null;
+    if (!db) {
+      loaded = true;
+      render();
+      $('sync').textContent = '연결 안 됨';
+      setReadOnly('지금은 목록에 연결할 수 없어요. Claude에 로그인한 상태로 이 링크를 다시 열어 주세요.');
+      return;
+    }
+    col = db.collection('items');
+
+    col.onSnapshot(snap => {
+      items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      loaded = true;
+      $('sync').textContent = '함께 보는 중';
+      $('sync').classList.remove('off');
+      render();
+    }, () => {
+      $('sync').textContent = '연결 끊김';
+      $('sync').classList.add('off');
+      showNotice('목록과 연결이 끊겼어요. 페이지를 새로고침해 주세요.');
+    });
+
+    const user = await window.claude.use('user');
+    if (user) {
+      try {
+        const ok = await user.can('data.write');
+        if (ok === false) setReadOnly();
+      } catch (e) {}
+    }
+  })();
+</script>

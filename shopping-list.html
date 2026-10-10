@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>우리 집 장보기</title>
+<style>
+  :root {
+    --bg: #eef7ee;
+    --card: #ffffff;
+    --ink: #1f3a24;
+    --muted: #6b8570;
+    --line: #dcebdc;
+    --green: #3a9d4f;
+    --green-dark: #2c7d3e;
+    --green-soft: #e3f3e5;
+    --danger: #c9533f;
+    --shadow: 0 2px 10px rgba(40, 90, 50, 0.08);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  header h1 { margin: 0 0 4px; font-size: 28px; letter-spacing: -0.5px; }
+  .progress-text { color: var(--muted); font-size: 15px; margin-bottom: 8px; }
+  .bar { height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: var(--green); border-radius: 99px; transition: width .3s ease; }
+
+  form.add {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    background: var(--card); padding: 12px; border-radius: 18px;
+    box-shadow: var(--shadow); margin: 20px 0;
+  }
+  form.add input, form.add select {
+    font: inherit; color: inherit;
+    border: 1.5px solid var(--line); border-radius: 12px;
+    padding: 10px 12px; background: #fbfdfb; min-width: 0;
+  }
+  form.add input { flex: 1 1 180px; }
+  form.add select { flex: 0 1 150px; }
+  form.add input:focus, form.add select:focus { outline: none; border-color: var(--green); }
+  .btn {
+    font: inherit; font-weight: 600; cursor: pointer;
+    border: none; border-radius: 12px; padding: 10px 18px;
+    background: var(--green); color: #fff;
+  }
+  .btn:hover { background: var(--green-dark); }
+  .btn.ghost { background: var(--card); color: var(--green-dark); border: 1.5px solid var(--line); }
+  .btn.ghost:hover { background: var(--green-soft); }
+  .btn.warn { background: var(--card); color: var(--danger); border: 1.5px solid #f1d5cf; }
+  .btn.warn:hover { background: #fdf1ee; }
+
+  .cat {
+    background: var(--card); border-radius: 18px; box-shadow: var(--shadow);
+    padding: 14px 16px 6px; margin-bottom: 14px;
+  }
+  .cat h2 {
+    margin: 0 0 6px; font-size: 18px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .cat h2 .count {
+    font-size: 13px; font-weight: 600; color: var(--green-dark);
+    background: var(--green-soft); padding: 2px 10px; border-radius: 99px;
+  }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-top: 1px solid var(--line);
+  }
+  li:first-child { border-top: none; }
+
+  .check {
+    flex: none; width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid #b9d8bd; background: #fff; cursor: pointer;
+    display: grid; place-items: center; padding: 0;
+    transition: background .15s, border-color .15s;
+  }
+  .check svg { width: 16px; height: 16px; opacity: 0; transform: scale(.5); transition: opacity .15s, transform .15s; }
+  li.done .check { background: var(--green); border-color: var(--green); }
+  li.done .check svg { opacity: 1; transform: scale(1); }
+
+  .name { flex: 1; min-width: 0; cursor: pointer; word-break: break-all; }
+  li.done .name { text-decoration: line-through; color: var(--muted); }
+
+  .qty { display: flex; align-items: center; gap: 4px; flex: none; }
+  .qty button, .del {
+    font: inherit; width: 30px; height: 30px; border-radius: 50%;
+    border: 1.5px solid var(--line); background: #fff; color: var(--green-dark);
+    cursor: pointer; line-height: 1; padding: 0;
+  }
+  .qty button:hover { background: var(--green-soft); }
+  .qty span { min-width: 34px; text-align: center; font-weight: 600; }
+  li.done .qty { opacity: .5; }
+  .del { color: #b0a7a5; border-color: transparent; }
+  .del:hover { color: var(--danger); background: #fdf1ee; }
+
+  .empty { text-align: center; color: var(--muted); padding: 32px 0; }
+  .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+
+  @media (max-width: 420px) {
+    header h1 { font-size: 24px; }
+    form.add .btn, form.add select { flex: 1 1 auto; }
+    .qty button { width: 28px; height: 28px; }
+    .qty span { min-width: 26px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🛒 우리 집 장보기</h1>
+    <div class="progress-text" id="progressText"></div>
+    <div class="bar"><div id="bar"></div></div>
+  </header>
+
+  <form class="add" id="addForm">
+    <input id="newName" type="text" placeholder="살 것을 적어 주세요 (예: 두부)" autocomplete="off" maxlength="40">
+    <select id="newCat"></select>
+    <button class="btn" type="submit">추가</button>
+  </form>
+
+  <main id="list"></main>
+
+  <div class="actions">
+    <button class="btn ghost" id="uncheckAll" type="button">🔄 체크 모두 해제</button>
+    <button class="btn warn" id="clearDone" type="button">🗑 산 항목 지우기</button>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'home-shopping-list-v1';
+  const CATEGORIES = [
+    { id: 'veg',   label: '🥬 채소·과일' },
+    { id: 'meat',  label: '🥩 육류·생선' },
+    { id: 'dairy', label: '🥛 유제품·달걀' },
+    { id: 'grain', label: '🍞 빵·곡물' },
+    { id: 'pantry',label: '🥫 가공·양념' },
+    { id: 'home',  label: '🧻 생활용품' },
+    { id: 'etc',   label: '📦 기타' },
+  ];
+  const SAMPLE = [
+    ['대파', 'veg', 1], ['사과', 'veg', 4],
+    ['돼지고기 앞다리살', 'meat', 1],
+    ['우유', 'dairy', 1], ['계란', 'dairy', 2],
+    ['식빵', 'grain', 1],
+    ['간장', 'pantry', 1],
+    ['휴지', 'home', 1],
+  ];
+
+  let items = load();
+
+  function newId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return SAMPLE.map(([name, cat, qty]) => ({ id: newId(), name, cat, qty, done: false }));
+  }
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch (e) {}
+  }
+  function update() { save(); render(); }
+
+  const checkSvg = '<svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+
+  function render() {
+    const list = document.getElementById('list');
+    list.innerHTML = '';
+
+    CATEGORIES.forEach(cat => {
+      const inCat = items.filter(i => i.cat === cat.id);
+      if (!inCat.length) return;
+      // 안 산 것 먼저, 산 것은 맨 아래로 (각 그룹 안에서는 추가한 순서 유지)
+      const sorted = [...inCat.filter(i => !i.done), ...inCat.filter(i => i.done)];
+      const left = inCat.filter(i => !i.done).length;
+
+      const section = document.createElement('section');
+      section.className = 'cat';
+      section.innerHTML = `<h2><span>${cat.label}</span><span class="count">${left ? left + '개 남음' : '다 담았어요 ✓'}</span></h2>`;
+      const ul = document.createElement('ul');
+
+      sorted.forEach(item => {
+        const li = document.createElement('li');
+        if (item.done) li.className = 'done';
+        li.innerHTML = `
+          <button class="check" type="button" aria-label="체크">${checkSvg}</button>
+          <span class="name"></span>
+          <div class="qty">
+            <button type="button" data-d="-1" aria-label="수량 줄이기">−</button>
+            <span>× ${item.qty}</span>
+            <button type="button" data-d="1" aria-label="수량 늘리기">+</button>
+          </div>
+          <button class="del" type="button" aria-label="삭제">✕</button>`;
+        li.querySelector('.name').textContent = item.name;
+
+        const toggle = () => { item.done = !item.done; update(); };
+        li.querySelector('.check').onclick = toggle;
+        li.querySelector('.name').onclick = toggle;
+        li.querySelectorAll('.qty button').forEach(b => {
+          b.onclick = () => {
+            item.qty = Math.min(99, Math.max(1, item.qty + Number(b.dataset.d)));
+            update();
+          };
+        });
+        li.querySelector('.del').onclick = () => {
+          items = items.filter(i => i.id !== item.id);
+          update();
+        };
+        ul.appendChild(li);
+      });
+
+      section.appendChild(ul);
+      list.appendChild(section);
+    });
+
+    if (!items.length) {
+      list.innerHTML = '<div class="empty">목록이 비어 있어요.<br>위에서 살 것을 추가해 보세요 🌱</div>';
+    }
+
+    const total = items.length;
+    const done = items.filter(i => i.done).length;
+    document.getElementById('progressText').textContent =
+      total ? `${total}개 중 ${done}개 담음` : '아직 살 것이 없어요';
+    document.getElementById('bar').style.width = total ? (done / total * 100) + '%' : '0';
+  }
+
+  // 카테고리 선택 상자 채우기
+  const sel = document.getElementById('newCat');
+  CATEGORIES.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.id; o.textContent = c.label;
+    sel.appendChild(o);
+  });
+
+  document.getElementById('addForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const input = document.getElementById('newName');
+    const name = input.value.trim();
+    if (!name) { input.focus(); return; }
+    items.push({ id: newId(), name, cat: sel.value, qty: 1, done: false });
+    input.value = '';
+    input.focus();
+    update();
+  });
+
+  document.getElementById('uncheckAll').onclick = () => {
+    items.forEach(i => i.done = false);
+    update();
+  };
+  document.getElementById('clearDone').onclick = () => {
+    const n = items.filter(i => i.done).length;
+    if (!n) { alert('아직 체크한 항목이 없어요.'); return; }
+    if (confirm(`체크한 ${n}개 항목을 목록에서 지울까요?`)) {
+      items = items.filter(i => !i.done);
+      update();
+    }
+  };
+
+  render();
+</script>
+</body>
+</html>
